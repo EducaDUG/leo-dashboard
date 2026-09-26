@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leo Learning Dashboard</title>
+<style>
+  :root{
+    /* Palette pulled directly from Discovery Lab's live homepage
+       (https://educadug.github.io/discovery-lab/, engine/style.css?v=12),
+       which renders with :root, [data-theme="earth"] - "Environmental Science -
+       soil, water, air". Confirmed against the fetched stylesheet, not invented. */
+    --paper:#F2EFE6; --surface:#FBF9F3; --surface-2:#EAE6D9;
+    --ink:#1D211C; --ink-2:#4A5148; --ink-3:#757C72;
+    --line:#1D211C24; --line-strong:#1D211C40;
+    --accent:#40634C; --accent-hi:#517B5E; --accent-ink:#FBF9F3;
+    --accent-wash:#40634C14;
+    --signal:#B5551F; --signal-wash:#B5551F14;
+    --positive:#2F6B45; --caution:#A66B00;
+    --radius:14px; --radius-lg:22px;
+    --font-display:"Fraunces","Iowan Old Style",Georgia,serif;
+    --font-ui:"Public Sans",ui-sans-serif,system-ui,"Segoe UI",sans-serif;
+    --font-data:"JetBrains Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font-ui);background-color:var(--paper);color:var(--ink);line-height:1.55;
+    /* Faint field-notebook grid, same recipe as the Discovery Lab homepage body rule. */
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size:48px 48px,48px 48px;
+    background-position:-1px -1px;
+  }
+  a{color:var(--signal);}
+  .eyebrow-label{font-family:var(--font-data);font-size:0.72rem;text-transform:uppercase;
+    letter-spacing:.08em;color:var(--signal);display:inline-flex;align-items:center;gap:6px;}
+  .target-icon{display:inline-block;width:14px;height:14px;vertical-align:middle;color:var(--signal);}
+  .shell{max-width:920px;margin:0 auto;padding:0 20px;}
+  header.site{background:var(--surface);border-bottom:1px dashed var(--line-strong);padding:22px 0;}
+  header.site h1{font-family:var(--font-display);font-size:1.9rem;margin:0 0 4px;
+    font-variation-settings:"wght" 600;}
+  header.site p{margin:0;color:var(--ink-2);font-size:0.95rem;}
+  nav.tabs{display:flex;gap:8px;flex-wrap:wrap;background:var(--surface);border-bottom:1px dashed var(--line-strong);
+    padding:10px 0;position:sticky;top:0;z-index:5;}
+  nav.tabs .shell{display:flex;gap:8px;flex-wrap:wrap;}
+  .tab-btn{border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-2);
+    padding:9px 14px;border-radius:999px;font:inherit;font-family:var(--font-data);
+    text-transform:uppercase;letter-spacing:.04em;font-weight:700;font-size:0.78rem;cursor:pointer;}
+  .tab-btn.active{background:var(--signal);color:var(--accent-ink);border-color:var(--signal);}
+  main{padding:26px 0 60px;}
+  .panel{display:none;}
+  .panel.active{display:block;}
+  h2.panel-title{font-family:var(--font-display);font-size:1.5rem;margin:0 0 6px;}
+  .panel-sub{color:var(--ink-2);margin:0 0 20px;font-size:0.95rem;max-width:64ch;}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);
+    padding:18px 20px;margin-bottom:16px;}
+  .card + .card{border-top:1px dashed var(--line-strong);}
+  .card h3{margin:0 0 8px;font-size:1.05rem;font-family:var(--font-display);}
+  .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;}
+  .stat{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);
+    border-radius:var(--radius);padding:14px 16px;}
+  .stat .num{font-family:var(--font-data);font-size:1.6rem;font-weight:700;color:var(--accent);}
+  .stat .label{font-size:0.8rem;color:var(--ink-2);text-transform:uppercase;letter-spacing:.04em;}
+  .focus-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;}
+  .focus-card{border-radius:var(--radius);padding:16px;border:1px solid var(--line);}
+  .focus-card.win{border-left:4px solid var(--positive);background:#2F6B4508;}
+  .focus-card.tonight{border-left:4px solid var(--signal);background:var(--signal-wash);}
+  .focus-card.edge{border-left:4px solid var(--caution);background:#A66B0010;}
+  .focus-card .eyebrow{font-family:var(--font-data);font-size:.72rem;text-transform:uppercase;
+    letter-spacing:.08em;color:var(--ink-2);margin-bottom:6px;}
+  .quote-card{border-left:3px solid var(--accent);padding:12px 16px;margin-bottom:10px;background:var(--surface);
+    border-radius:var(--radius);}
+  .quote-card blockquote{margin:0 0 6px;font-family:var(--font-display);font-size:1.05rem;font-style:italic;color:var(--ink);}
+  .quote-card .interp{font-size:0.85rem;color:var(--ink-2);}
+  .pill{display:inline-block;font-family:var(--font-data);font-size:0.72rem;text-transform:uppercase;
+    letter-spacing:.06em;padding:3px 10px;border-radius:999px;border:1px solid var(--line-strong);color:var(--ink-2);
+    background:var(--surface-2);margin-right:6px;}
+  .pill.stage-Emerging{color:#A66B00;border-color:#A66B0055;background:#A66B0014;}
+  .pill.stage-Developing{color:#B5551F;border-color:#B5551F55;background:#B5551F14;}
+  .pill.stage-Growing{color:#517B5E;border-color:#517B5E55;background:#517B5E14;}
+  .pill.stage-Secure{color:#2F6B45;border-color:#2F6B4555;background:#2F6B4514;}
+  .chart-card svg{width:100%;height:auto;display:block;}
+  .chart-legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;font-size:0.82rem;color:var(--ink-2);}
+  .legend-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle;}
+  .evidence-pop{display:none;margin-top:10px;padding:10px 12px;border-radius:var(--radius);
+    background:var(--surface-2);font-size:0.86rem;color:var(--ink-2);}
+  .evidence-pop.show{display:block;}
+  .milestone{display:flex;gap:12px;margin-bottom:14px;}
+  .milestone .dot{width:10px;height:10px;border-radius:50%;background:var(--signal);flex:0 0 auto;margin-top:6px;}
+  .milestone .date{font-family:var(--font-data);font-size:0.78rem;color:var(--ink-3);}
+  .profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .profile-grid .item{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;}
+  .profile-grid .item .k{font-family:var(--font-data);font-size:0.72rem;text-transform:uppercase;color:var(--ink-2);
+    margin-bottom:4px;}
+  .basis-note{font-size:0.8rem;color:var(--ink-3);margin-top:6px;}
+  ul.plain{margin:0;padding-left:18px;}
+  ul.plain li{margin-bottom:6px;}
+  details.session{border:1px solid var(--line);border-radius:var(--radius);margin-bottom:10px;background:var(--surface);}
+  details.session summary{padding:12px 16px;cursor:pointer;font-weight:700;list-style:none;font-family:var(--font-display);}
+  details.session summary::-webkit-details-marker{display:none;}
+  details.session summary .sdate{font-family:var(--font-data);font-size:0.78rem;color:var(--ink-2);
+    font-weight:400;display:block;text-transform:uppercase;letter-spacing:.04em;}
+  details.session .session-body{padding:0 16px 16px;border-top:1px dashed var(--line-strong);}
+  details.session .session-body h4{font-size:0.85rem;margin:14px 0 6px;color:var(--ink-2);text-transform:uppercase;
+    letter-spacing:.03em;}
+  .resource-link{display:block;margin-bottom:8px;}
+  .resource-link a{font-weight:700;word-break:break-word;}
+  .resource-link .note{font-size:0.85rem;color:var(--ink-2);}
+  .about-portrait-row{display:flex;gap:18px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
+  .btn-linkedin{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:var(--accent-ink);
+    padding:10px 16px;border-radius:999px;text-decoration:none;font-weight:700;font-size:0.9rem;}
+  .about-hero{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;margin-bottom:22px;}
+  .about-photo-wrap{position:relative;width:168px;height:168px;margin:6px 0 8px;display:flex;align-items:center;justify-content:center;}
+  .about-photo-wrap::before{content:"";position:absolute;inset:-22px;border-radius:50%;
+    background:radial-gradient(circle,#40634C55 0%,#40634C22 40%,transparent 72%);}
+  .about-photo-wrap::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid var(--accent-hi);opacity:.65;}
+  .about-photo{position:relative;width:168px;height:168px;border-radius:50%;object-fit:cover;
+    border:3px solid var(--surface);box-shadow:0 0 0 1px var(--line-strong);z-index:1;}
+  .about-heading{font-family:var(--font-display);font-size:1.9rem;margin:2px 0 0;font-variation-settings:"wght" 600;}
+  .about-subheading{color:var(--ink-2);max-width:52ch;margin:0;font-size:0.98rem;}
+  .about-chip-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:6px 0 4px;}
+  .about-chip{font-family:var(--font-data);font-size:0.72rem;text-transform:uppercase;letter-spacing:.05em;
+    padding:5px 12px;border-radius:999px;border:1px solid var(--line-strong);color:var(--ink-2);background:var(--surface-2);}
+  .about-closing h3{margin:0 0 6px;font-family:var(--font-display);font-size:1.1rem;}
+  footer.disclaimer{border-top:1px solid var(--line);margin-top:24px;padding-top:16px;font-size:0.8rem;color:var(--ink-3);}
+  @media (max-width:640px){
+    .stat-row,.focus-row,.profile-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<header class="site">
+  <div class="shell">
+    <h1>Leo's Learning Dashboard</h1>
+    <p>A voluntary, supplementary learning resource from Mr. Guevara. Please refer to Canvas / the Learning Lab for grades, deadlines and official progress reports.</p>
+  </div>
+</header>
+<nav class="tabs">
+  <div class="shell">
+    <button class="tab-btn active" data-tab="overview">Overview</button>
+    <button class="tab-btn" data-tab="progress">Progress</button>
+    <button class="tab-btn" data-tab="helpathome">Help at Home</button>
+    <button class="tab-btn" data-tab="sessions">Sessions</button>
+    <button class="tab-btn" data-tab="about">About</button>
+  </div>
+</nav>
+<main class="shell">
+
+  <section class="panel active" id="tab-overview"></section>
+  <section class="panel" id="tab-progress"></section>
+  <section class="panel" id="tab-helpathome"></section>
+  <section class="panel" id="tab-sessions"></section>
+  <section class="panel" id="tab-about"></section>
+
+</main>
+
+<script id="dashboard-v2-data" type="application/json">{
+  "student_first_name": "Leo",
+  "programme": "Primary-1 Computer Skills",
+  "canvas_note": "Please refer to Canvas for quantitative information such as grades, deadlines, submitted work, and formal assessment data.",
+  "dashboard_purpose_note": "This dashboard is a voluntary teaching resource created by Mr. Guevara to show the student's longer-term learning journey, recurring patterns, and next steps across lessons.",
+  "professional_observation_note": "The learning notes in this dashboard are Mr. Guevara's professional observations based on lessons. They are not fixed labels, diagnoses, grades, or formal assessment results.",
+  "stats": {
+    "sessions_logged": 4,
+    "distinct_skills_tried": 32,
+    "milestones_hit": 3
+  },
+  "skill_threads": {
+    "Spreadsheet organisation": [
+      {
+        "session_date_iso": "2026-05-01",
+        "session_date": "1 May 2026",
+        "lesson_title": "Spreadsheet Course Finale",
+        "stage": "Growing",
+        "evidence": "Leo is now using digital tools with more ownership, not only following instructions."
+      }
+    ],
+    "Table formatting": [
+      {
+        "session_date_iso": "2026-05-01",
+        "session_date": "1 May 2026",
+        "lesson_title": "Spreadsheet Course Finale",
+        "stage": "Developing",
+        "evidence": "Leo is now using digital tools with more ownership, not only following instructions."
+      }
+    ],
+    "Hardware vocabulary": [
+      {
+        "session_date_iso": "2026-05-01",
+        "session_date": "1 May 2026",
+        "lesson_title": "Spreadsheet Course Finale",
+        "stage": "Growing",
+        "evidence": "Leo is now using digital tools with more ownership, not only following instructions."
+      }
+    ],
+    "Quiz reflection": [
+      {
+        "session_date_iso": "2026-05-01",
+        "session_date": "1 May 2026",
+        "lesson_title": "Spreadsheet Course Finale",
+        "stage": "Secure",
+        "evidence": "Leo is now using digital tools with more ownership, not only following instructions."
+      }
+    ],
+    "Independent digital learning": [
+      {
+        "session_date_iso": "2026-05-01",
+        "session_date": "1 May 2026",
+        "lesson_title": "Spreadsheet Course Finale",
+        "stage": "Growing",
+        "evidence": "Leo is now using digital tools with more ownership, not only following instructions."
+      }
+    ],
+    "HTML and CSS recap": [
+      {
+        "session_date_iso": "2026-04-29",
+        "session_date": "29 April 2026",
+        "lesson_title": "3D Web Simulations",
+        "stage": "Secure",
+        "evidence": "Leo is starting to treat digital tools as things he can investigate, test, adjust, and explain."
+      }
+    ],
+    "Editor choice": [
+      {
+        "session_date_iso": "2026-04-29",
+        "session_date": "29 April 2026",
+        "lesson_title": "3D Web Simulations",
+        "stage": "Developing",
+        "evidence": "Leo is starting to treat digital tools as things he can investigate, test, adjust, and explain."
+      }
+    ],
+    "3D tool exploration": [
+      {
+        "session_date_iso": "2026-04-29",
+        "session_date": "29 April 2026",
+        "lesson_title": "3D Web Simulations",
+        "stage": "Developing",
+        "evidence": "Leo is starting to treat digital tools as things he can investigate, test, adjust, and explain."
+      }
+    ],
+    "Independent testing": [
+      {
+        "session_date_iso": "2026-04-29",
+        "session_date": "29 April 2026",
+        "lesson_title": "3D Web Simulations",
+        "stage": "Growing",
+        "evidence": "Leo is starting to treat digital tools as things he can investigate, test, adjust, and explain."
+      }
+    ],
+    "Problem solving": [
+      {
+        "session_date_iso": "2026-04-29",
+        "session_date": "29 April 2026",
+        "lesson_title": "3D Web Simulations",
+        "stage": "Growing",
+        "evidence": "Leo is starting to treat digital tools as things he can investigate, test, adjust, and explain."
+      }
+    ],
+    "Cybersecurity awareness": [
+      {
+        "session_date_iso": "2026-04-24",
+        "session_date": "24 April 2026",
+        "lesson_title": "Cyber Safety Challenge",
+        "stage": "Developing",
+        "evidence": "Leo showed the strongest growth when he slowed down, checked the wording carefully, and turned safety ideas into practical choices."
+      }
+    ],
+    "Digital footprint understanding": [
+      {
+        "session_date_iso": "2026-04-24",
+        "session_date": "24 April 2026",
+        "lesson_title": "Cyber Safety Challenge",
+        "stage": "Growing",
+        "evidence": "Leo showed the strongest growth when he slowed down, checked the wording carefully, and turned safety ideas into practical choices."
+      }
+    ],
+    "Privacy choices": [
+      {
+        "session_date_iso": "2026-04-24",
+        "session_date": "24 April 2026",
+        "lesson_title": "Cyber Safety Challenge",
+        "stage": "Growing",
+        "evidence": "Leo showed the strongest growth when he slowed down, checked the wording carefully, and turned safety ideas into practical choices."
+      }
+    ],
+    "Independent problem solving": [
+      {
+        "session_date_iso": "2026-04-24",
+        "session_date": "24 April 2026",
+        "lesson_title": "Cyber Safety Challenge",
+        "stage": "Developing",
+        "evidence": "Leo showed the strongest growth when he slowed down, checked the wording carefully, and turned safety ideas into practical choices."
+      }
+    ],
+    "HTML structure": [
+      {
+        "session_date_iso": "2026-04-22",
+        "session_date": "22 April 2026",
+        "lesson_title": "First HTML Website",
+        "stage": "Developing",
+        "evidence": "Leo became most engaged when coding felt real, visible, and personally customisable."
+      }
+    ],
+    "Safe code editing": [
+      {
+        "session_date_iso": "2026-04-22",
+        "session_date": "22 April 2026",
+        "lesson_title": "First HTML Website",
+        "stage": "Developing",
+        "evidence": "Leo became most engaged when coding felt real, visible, and personally customisable."
+      }
+    ],
+    "Design experimentation": [
+      {
+        "session_date_iso": "2026-04-22",
+        "session_date": "22 April 2026",
+        "lesson_title": "First HTML Website",
+        "stage": "Growing",
+        "evidence": "Leo became most engaged when coding felt real, visible, and personally customisable."
+      }
+    ],
+    "Independent checking": [
+      {
+        "session_date_iso": "2026-04-22",
+        "session_date": "22 April 2026",
+        "lesson_title": "First HTML Website",
+        "stage": "Developing",
+        "evidence": "Leo became most engaged when coding felt real, visible, and personally customisable."
+      }
+    ]
+  },
+  "milestones": [
+    {
+      "session_date": "22 April 2026",
+      "session_date_iso": "2026-04-22",
+      "title": "Created and edited a working webpage.",
+      "detail": "Created and edited a working webpage."
+    },
+    {
+      "session_date": "24 April 2026",
+      "session_date_iso": "2026-04-24",
+      "title": "Completed the cybersecurity challenge and explained key online safety ideas clearly.",
+      "detail": "Completed the cybersecurity challenge and explained key online safety ideas clearly."
+    },
+    {
+      "session_date": "29 April 2026",
+      "session_date_iso": "2026-04-29",
+      "title": "Scored 15 out of 15 on his HTML recap quiz and shared his website code with his brother.",
+      "detail": "Scored 15 out of 15 on his HTML recap quiz and shared his website code with his brother."
+    }
+  ],
+  "learning_profile": {
+    "based_on_sessions": 4,
+    "engages_best_when": "Leo engages well with hands-on, guided tasks tied to concrete examples.",
+    "responds_well_to": "step-by-step modelling before independent practice.",
+    "often_curious_about": "Leo said his typing is getting faster and explained that a scanner is like the opposite of a printer once the idea clicked.",
+    "currently_trying": "Slow down when answers look similar and explain the reasoning behind each choice."
+  },
+  "voice_quotes": [
+    {
+      "quote": "Leo said his typing is getting faster and explained that a scanner is like the opposite of a printer once the idea clicked.",
+      "session_date": "1 May 2026",
+      "lesson_title": "Spreadsheet Course Finale"
+    },
+    {
+      "quote": "Leo explained how he checks colour codes before changing them and said he had sent his Notepad website code to his brother so he could make his own version.",
+      "session_date": "29 April 2026",
+      "lesson_title": "3D Web Simulations"
+    },
+    {
+      "quote": "Leo said that strangers in games could be hackers and finished by writing that he should not accept random invites or share personal information online.",
+      "session_date": "24 April 2026",
+      "lesson_title": "Cyber Safety Challenge"
+    }
+  ],
+  "sessions": [
+    {
+      "session_date": "1 May 2026",
+      "session_date_iso": "2026-05-01",
+      "lesson_title": "Spreadsheet Course Finale",
+      "subject": "Primary-1 Computer Skills",
+      "summary": "Leo finished the Computer Skills course by improving his own grade-tracking spreadsheet, learning how merged cells and vertical alignment make tables clearer, completing final recap quizzes, and clearing up small gaps around the CPU and scanner.",
+      "aim": "To help Leo finish the Computer Skills course with stronger organisation, clearer spreadsheet presentation, secure review of core computer hardware ideas, and confidence in his growing independence as a digital learner.",
+      "big_win": "Leo scored 15 out of 15 on two recap quizzes and used his own spreadsheet as a real learning task.",
+      "next_priority": "Slow down when answers look similar and explain the reasoning behind each choice.",
+      "current_unit": "",
+      "student_pacing": "",
+      "lesson_engagement": "",
+      "additional_notes": "",
+      "student_voice": "Leo said his typing is getting faster and explained that a scanner is like the opposite of a printer once the idea clicked.",
+      "home_support": [
+        "Ask Leo to show a simple spreadsheet and explain what each column heading means.",
+        "Invite Leo to explain why a scanner is an input device and a monitor is an output device.",
+        "When Leo uses a digital tool, ask him to describe one thing he tested and one thing he noticed."
+      ],
+      "extension_task": "",
+      "family_friendly_science_explanation": "",
+      "ideas_we_are_refining": "",
+      "skills": [
+        {
+          "evidence": "Leo showed ownership by creating a spreadsheet for his own grades.",
+          "source_field": "strengths"
+        },
+        {
+          "evidence": "He improved the table after feedback and learned a more professional formatting habit.",
+          "source_field": "strengths"
+        },
+        {
+          "evidence": "He corrected misunderstandings about the CPU and scanner during the lesson.",
+          "source_field": "strengths"
+        },
+        {
+          "evidence": "He stayed focused during final recap work and finished the course with confidence.",
+          "source_field": "strengths"
+        },
+        {
+          "evidence": "Spreadsheet organisation",
+          "source_field": "skills_observed"
+        },
+        {
+          "evidence": "Table formatting",
+          "source_field": "skills_observed"
+        },
+        {
+          "evidence": "Hardware vocabulary",
+          "source_field": "skills_observed"
+        },
+        {
+          "evidence": "Digital reasoning",
+          "source_field": "skills_observed"
+        },
+        {
+          "evidence": "Quiz review",
+          "source_field": "skills_observed"
+        },
+        {
+          "evidence": "Independent problem solving",
+          "source_field": "skills_observed"
+        }
+      ],
+      "growing_next": [
+        {
+          "evidence": "Slow down when two answers seem close so he can trust his first clear reasoning.",
+          "source_field": "areas_for_growth"
+        },
+        {
+          "evidence": "Keep using accurate computer vocabulary when explaining devices.",
+          "source_field": "areas_for_growth"
+        },
+        {
+          "evidence": "Practise explaining why a formatting choice makes information easier to read.",
+          "source_field": "areas_for_growth"
+        },
+        {
+          "evidence": "Slow down when answers look similar and explain the reasoning behind each choice.",
+          "source_field": "next_priority"
+        }
+      ],
+      "resources": [
+        {
+          "title": "Google Sheets Help - Merge cells",
+          "url": "https://support.google.com/docs/answer/9060449",
+          "note": "Use this to review how merging cells works in Google Sheets."
+        },
+        {
+          "title": "BBC Bitesize - What are input and output devices?",
+          "url": "https://www.bbc.co.uk/bitesize/topics/zf2f9j6/articles/zx8hp4j",
+          "note": "Use this to revise input and output devices such as scanner, keyboard, mouse, monitor, speaker, and printer."
+        },
+        {
+          "title": "W3C - Starting with HTML and CSS",
+          "url": "https://www.w3.org/Style/Examples/011/firstcss.en.html",
+          "note": "Use this to review why simple text files can become webpages when a browser reads them."
+        }
+      ],
+      "assignments_outstanding": [],
+      "raw_session": {
+        "session_date": "1 May 2026",
+        "session_date_iso": "2026-05-01",
+        "lesson_title": "Spreadsheet Course Finale",
+        "summary": "Leo finished the Computer Skills course by improving his own grade-tracking spreadsheet, learning how merged cells and vertical alignment make tables clearer, completing final recap quizzes, and clearing up small gaps around the CPU and scanner.",
+        "aim": "To help Leo finish the Computer Skills course with stronger organisation, clearer spreadsheet presentation, secure review of core computer hardware ideas, and confidence in his growing independence as a digital learner.",
+        "headline_insight": "Leo is now using digital tools with more ownership, not only following instructions.",
+        "current_focus": "Organising and explaining digital information",
+        "big_win": "Leo scored 15 out of 15 on two recap quizzes and used his own spreadsheet as a real learning task.",
+        "next_priority": "Slow down when answers look similar and explain the reasoning behind each choice.",
+        "engagement_status": "Focused and independent",
+        "why_this_matters": "Leo is building the habits that make computer skills useful beyond one course: organising data, presenting information clearly, testing tools, and correcting small misunderstandings before they become fixed gaps.",
+        "progress_since_last_update": [
+          "Used his own grade-tracking spreadsheet as a practical learning task.",
+          "Added clearer subject and term structure to a table.",
+          "Practised merging cells and using vertical alignment to improve spreadsheet presentation.",
+          "Clarified that the CPU processes instructions and is often called the brain of the computer.",
+          "Clarified that a scanner is an input device because it brings paper information into the computer as a digital file.",
+          "Completed recap quizzes on cyber safety and HTML, CSS, 3D tools, and problem solving with full marks."
+        ],
+        "home_support": [
+          "Ask Leo to show a simple spreadsheet and explain what each column heading means.",
+          "Invite Leo to explain why a scanner is an input device and a monitor is an output device.",
+          "When Leo uses a digital tool, ask him to describe one thing he tested and one thing he noticed."
+        ],
+        "student_voice": "Leo said his typing is getting faster and explained that a scanner is like the opposite of a printer once the idea clicked.",
+        "indicators": {
+          "Spreadsheet organisation": "Growing",
+          "Table formatting": "Practised",
+          "Hardware vocabulary": "Strengthened",
+          "Quiz reflection": "Secure",
+          "Independent digital learning": "Growing"
+        },
+        "upcoming_focus": [
+          "Keep using tables and headings to organise information clearly.",
+          "Strengthen explanations of input and output devices.",
+          "Use the change, test, fix, explain routine in coding or HTML activities."
+        ],
+        "strengths": [
+          "Leo showed ownership by creating a spreadsheet for his own grades.",
+          "He improved the table after feedback and learned a more professional formatting habit.",
+          "He corrected misunderstandings about the CPU and scanner during the lesson.",
+          "He stayed focused during final recap work and finished the course with confidence."
+        ],
+        "areas_for_growth": [
+          "Slow down when two answers seem close so he can trust his first clear reasoning.",
+          "Keep using accurate computer vocabulary when explaining devices.",
+          "Practise explaining why a formatting choice makes information easier to read."
+        ],
+        "next_steps": [
+          "Your next step: make a three-column spreadsheet with Subject, Term, and Score, then explain one formatting choice.",
+          "Your next step: sort six devices into input and output devices and write one 'How might...' question about a confusing example.",
+          "Your next step: make one small coding or HTML change, test it, and write what changed on the screen."
+        ],
+        "skills_observed": [
+          "Spreadsheet organisation",
+          "Table formatting",
+          "Hardware vocabulary",
+          "Digital reasoning",
+          "Quiz review",
+          "Independent problem solving"
+        ],
+        "engagement": "Leo was lively, focused, and especially engaged when the task connected to something he had made himself.",
+        "resources": [
+          {
+            "title": "Google Sheets Help - Merge cells",
+            "url": "https://support.google.com/docs/answer/9060449",
+            "note": "Use this to review how merging cells works in Google Sheets."
+          },
+          {
+            "title": "BBC Bitesize - What are input and output devices?",
+            "url": "https://www.bbc.co.uk/bitesize/topics/zf2f9j6/articles/zx8hp4j",
+            "note": "Use this to revise input and output devices such as scanner, keyboard, mouse, monitor, speaker, and printer."
+          },
+          {
+            "title": "W3C - Starting with HTML and CSS",
+            "url": "https://www.w3.org/Style/Examples/011/firstcss.en.html",
+            "note": "Use this to review why simple text files can become webpages when a browser reads them."
+          }
+        ],
+        "independence_patterns": [],
+        "misconceptions": [],
+        "communication_patterns": [],
+        "student_glows": [],
+        "accuracy_patterns": [],
+        "vocabulary_patterns": [],
+        "confidence_patterns": [],
+        "reasoning_patterns": [],
+        "successful_strategies": [],
+        "skills_focus": [],
+        "participation_patterns": [],
+        "student_grows": [],
+        "additional_notes": "",
+        "current_unit": "",
+        "student_pacing": "",
+        "lesson_engagement": "",
+        "assignments_outstanding": [],
+        "dashboard_subject": "Primary-1 Computer Skills"
+      }
+    },
+    {
+      "session_date": "29 April 2026",
+      "session_date_iso": "2026-04-29",
+      "lesson_title": "3D Web Simulations",
+      "subject": "Primary-1 Computer Skills",
+      "summary": "Leo reviewed his HTML and CSS understanding, clarified why plain text or code editors are best for HTML, explored a browser-based 3D sculpting tool, and tested a second web simulation with growing independence.",
+      "aim": "To help Leo connect his HTML and web-design learning with broader computer skills: choosing the right type of editor, testing changes carefully, using a browser to run interactive tools, and solving control problems independently in a 3D digital environment.",
+      "big_win": "Scored 15 out of 15 on his HTML recap quiz and shared his website code with his brother.",
+      "next_priority": "Explain why each tool or editor is suitable for a specific digital task.",
+      "current_unit": "",
+      "student_pacing": "",
+      "lesson_engagement": "",
+      "additional_notes": "",
+      "student_voice": "Leo explained how he checks colour codes before changing them and said he had sent his Notepad website code to his brother so he could make his own version.",
+      "home_support": [
+        "Ask Leo to show one colour code and explain how he knows what colour it represents.",
+        "Invite Leo to explain why Notepad or a code editor is better for HTML than a note-taking app.",
+        "If Leo uses the 3D sculpting tool again, ask him to describe one tool, one mistake, and one fix."
+      ],
+      "extension_task": "",
+      "family_friendly_science_explanation": "",
+      "ideas_we_are_refining": "",
+      "skills": [
+        {
+          "evidence": "Leo remembered the key HTML and CSS ideas from the previous lessons.",
+          "source_field": "strengths"
+        },
+        {
+          "evidence": "He showed ownership by sharing his website code with his brother.",
+          "source_field": "strengths"
+        },
+        {
+          "evidence": "He explored unfamiliar 3D tools with energy and curiosity.",
+          "source_field": "strengths"
+        },
+        {
+          "evidence": "He kept testing when controls were confusing instead of stopping immediately.",
+          "source_field": "strengths"
+        },
+        {
+          "evidence": "HTML recall",
+          "source_field": "skills_observed"
+        },
+        {
+          "evidence": "Digital organisation",
+          "source_field": "skills_observed"
+        },
+        {
+          "evidence": "Tool selection",
+          "source_field": "skills_observed"
+        },
+        {
+          "evidence": "Spatial thinking",
+          "source_field": "skills_observed"
+        },
+        {
+          "evidence": "Problem solving",
+          "source_field": "skills_observed"
+        },
+        {
+          "evidence": "Independent experimentation",
+          "source_field": "skills_observed"
+        }
+      ],
+      "growing_next": [
+        {
+          "evidence": "Keep explaining why a particular tool is suitable for a task.",
+          "source_field": "areas_for_growth"
+        },
+        {
+          "evidence": "Slow down slightly when many controls are available so he can connect each click to its result.",
+          "source_field": "areas_for_growth"
+        },
+        {
+          "evidence": "Use clear language to describe what changed after each save, refresh, undo, or camera movement.",
+          "source_field": "areas_for_growth"
+        },
+        {
+          "evidence": "Explain why each tool or editor is suitable for a specific digital task.",
+          "source_field": "next_priority"
+        }
+      ],
+      "resources": [
+        {
+          "title": "MDN Web Docs - Structuring content with HTML",
+          "url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Structuring_content",
+          "note": "Use this when Leo wants a reliable reference for what HTML does and how webpages are structured."
+        },
+        {
+          "title": "W3Schools - HTML Editors",
+          "url": "https://www.w3schools.com/html/html_editors.asp",
+          "note": "Use this to review why simple text editors such as Notepad can be used for beginner HTML practice."
+        },
+        {
+          "title": "SculptGL - A WebGL sculpting app",
+          "url": "https://stephaneginier.com/sculptgl/",
+          "note": "Use this to keep experimenting with 3D sculpting tools such as inflate, smooth, flatten, pinch, drag, colour, and camera movement."
+        },
+        {
+          "title": "Be Internet Awesome - Interland",
+          "url": "https://beinternetawesome.withgoogle.com/en_us/interland",
+          "note": "Use this for safe, school-friendly web simulation practice where Leo has to explore, make decisions, and work out controls independently."
+        }
+      ],
+      "assignments_outstanding": [],
+      "raw_session": {
+        "session_date": "29 April 2026",
+        "session_date_iso": "2026-04-29",
+        "lesson_title": "3D Web Simulations",
+        "summary": "Leo reviewed his HTML and CSS understanding, clarified why plain text or code editors are best for HTML, explored a browser-based 3D sculpting tool, and tested a second web simulation with growing independence.",
+        "aim": "To help Leo connect his HTML and web-design learning with broader computer skills: choosing the right type of editor, testing changes carefully, using a browser to run interactive tools, and solving control problems independently in a 3D digital environment.",
+        "headline_insight": "Leo is starting to treat digital tools as things he can investigate, test, adjust, and explain.",
+        "current_focus": "Independent digital experimentation",
+        "big_win": "Scored 15 out of 15 on his HTML recap quiz and shared his website code with his brother.",
+        "next_priority": "Explain why each tool or editor is suitable for a specific digital task.",
+        "engagement_status": "Curious and independent",
+        "why_this_matters": "Leo is building the habits that sit underneath strong computing work: careful testing, spatial thinking, tool choice, and calm problem solving when something unexpected happens.",
+        "student_voice": "Leo explained how he checks colour codes before changing them and said he had sent his Notepad website code to his brother so he could make his own version.",
+        "progress_since_last_update": [
+          "Completed the HTML recap quiz with full marks.",
+          "Explained his own method for checking and choosing colour codes.",
+          "Shared his HTML website code with his brother, showing ownership of the process.",
+          "Clarified the difference between plain text/code editors and note-taking tools.",
+          "Explored 3D sculpting controls including inflate, twist, smooth, flatten, pinch, crease, drag, colour, transparency, and camera movement.",
+          "Used undo, camera changes, and repeated testing when a 3D control did not behave as expected."
+        ],
+        "home_support": [
+          "Ask Leo to show one colour code and explain how he knows what colour it represents.",
+          "Invite Leo to explain why Notepad or a code editor is better for HTML than a note-taking app.",
+          "If Leo uses the 3D sculpting tool again, ask him to describe one tool, one mistake, and one fix."
+        ],
+        "upcoming_focus": [
+          "Strengthen the habit of making one small edit, saving, refreshing, and explaining the result.",
+          "Practise choosing the right app for the right digital task.",
+          "Keep developing spatial thinking through 3D tools and simulations."
+        ],
+        "indicators": {
+          "HTML and CSS recap": "Secure",
+          "Editor choice": "Introduced",
+          "3D tool exploration": "Practised",
+          "Independent testing": "Growing",
+          "Problem solving": "Growing"
+        },
+        "strengths": [
+          "Leo remembered the key HTML and CSS ideas from the previous lessons.",
+          "He showed ownership by sharing his website code with his brother.",
+          "He explored unfamiliar 3D tools with energy and curiosity.",
+          "He kept testing when controls were confusing instead of stopping immediately."
+        ],
+        "areas_for_growth": [
+          "Keep explaining why a particular tool is suitable for a task.",
+          "Slow down slightly when many controls are available so he can connect each click to its result.",
+          "Use clear language to describe what changed after each save, refresh, undo, or camera movement."
+        ],
+        "next_steps": [
+          "Your next step: make one safe HTML change, save, refresh, and write one sentence beginning with 'The change I tested was...'",
+          "Your next step: make a two-column table comparing tools that are good for HTML with tools that are better for notes.",
+          "Your next step: create one simple 3D object and write one 'How might I...' question about a tool you still want to control better."
+        ],
+        "skills_observed": [
+          "HTML recall",
+          "Digital organisation",
+          "Tool selection",
+          "Spatial thinking",
+          "Problem solving",
+          "Independent experimentation"
+        ],
+        "engagement": "Leo was lively, focused, and playful with the digital tools, especially when he could immediately see the result of changing code, colour, shape, or camera angle.",
+        "resources": [
+          {
+            "title": "MDN Web Docs - Structuring content with HTML",
+            "url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Structuring_content",
+            "note": "Use this when Leo wants a reliable reference for what HTML does and how webpages are structured."
+          },
+          {
+            "title": "W3Schools - HTML Editors",
+            "url": "https://www.w3schools.com/html/html_editors.asp",
+            "note": "Use this to review why simple text editors such as Notepad can be used for beginner HTML practice."
+          },
+          {
+            "title": "SculptGL - A WebGL sculpting app",
+            "url": "https://stephaneginier.com/sculptgl/",
+            "note": "Use this to keep experimenting with 3D sculpting tools such as inflate, smooth, flatten, pinch, drag, colour, and camera movement."
+          },
+          {
+            "title": "Be Internet Awesome - Interland",
+            "url": "https://beinternetawesome.withgoogle.com/en_us/interland",
+            "note": "Use this for safe, school-friendly web simulation practice where Leo has to explore, make decisions, and work out controls independently."
+          }
+        ],
+        "independence_patterns": [],
+        "misconceptions": [],
+        "communication_patterns": [],
+        "student_glows": [],
+        "accuracy_patterns": [],
+        "vocabulary_patterns": [],
+        "confidence_patterns": [],
+        "reasoning_patterns": [],
+        "successful_strategies": [],
+        "skills_focus": [],
+        "participation_patterns": [],
+        "student_grows": [],
+        "additional_notes": "",
+        "current_unit": "",
+        "student_pacing": "",
+        "lesson_engagement": "",
+        "assignments_outstanding": [],
+        "dashboard_subject": "Primary-1 Computer Skills"
+      }
+    },
+    {
+      "session_date": "24 April 2026",
+      "session_date_iso": "2026-04-24",
+      "lesson_title": "Cyber Safety Challenge",
+      "subject": "Primary-1 Computer Skills",
+      "summary": "Leo explored cybersecurity through a video, a fast-response simulation, and an escape challenge focused on phishing, digital footprints, strong passwords, and online privacy.",
+      "aim": "To help Leo recognise common online safety risks, explain what a digital footprint is, and make safer choices when using emails, websites, games, and school platforms.",
+      "big_win": "Completed the cybersecurity challenge and explained key online safety ideas clearly.",
+      "next_priority": "Use the same careful thinking when real messages, links, or strangers appear online.",
+      "current_unit": "",
+      "student_pacing": "",
+      "lesson_engagement": "",
+      "additional_notes": "",
+      "student_voice": "Leo said that strangers in games could be hackers and finished by writing that he should not accept random invites or share personal information online.",
+      "home_support": [
+        "Ask Leo to explain the difference between safe information and private information.",
+        "Invite Leo to give one example of a digital footprint from his own online use.",
+        "If a message or website seems strange, encourage Leo to pause first and check with an adult rather than guessing."
+      ],
+      "extension_task": "",
+      "family_friendly_science_explanation": "",
+      "ideas_we_are_refining": "",
+      "skills": [
+        {
+          "evidence": "Leo connected online safety ideas to real situations such as games, emails, and private details.",
+          "source_field": "strengths"
+        },
+        {
+          "evidence": "He stayed involved throughout the simulation and challenge activities.",
+          "source_field": "strengths"
+        },
+        {
+          "evidence": "He kept thinking when one clue was confusing and corrected his answer carefully.",
+          "source_field": "strengths"
+        },
+        {
+          "evidence": "Critical thinking",
+          "source_field": "skills_observed"
+        },
+        {
+          "evidence": "Digital safety",
+          "source_field": "skills_observed"
+        },
+        {
+          "evidence": "Problem solving",
+          "source_field": "skills_observed"
+        },
+        {
+          "evidence": "Careful reading",
+          "source_field": "skills_observed"
+        },
+        {
+          "evidence": "Independent reflection",
+          "source_field": "skills_observed"
+        }
+      ],
+      "growing_next": [
+        {
+          "evidence": "Keep slowing down when challenge wording is tricky so he can rely on reasoning rather than first guesses.",
+          "source_field": "areas_for_growth"
+        },
+        {
+          "evidence": "Use more precise language when explaining terms such as phishing and digital footprint.",
+          "source_field": "areas_for_growth"
+        },
+        {
+          "evidence": "Turn his growing awareness into a routine habit whenever he is online.",
+          "source_field": "areas_for_growth"
+        },
+        {
+          "evidence": "Use the same careful thinking when real messages, links, or strangers appear online.",
+          "source_field": "next_priority"
+        }
+      ],
+      "resources": [
+        {
+          "title": "Be Internet Awesome - Interland",
+          "url": "https://beinternetawesome.withgoogle.com/en_us/interland",
+          "note": "Use this game to keep practising safe online choices such as protecting private information, spotting tricks, and responding wisely when something feels wrong."
+        },
+        {
+          "title": "CYBER.ORG - Cyber Safety Series",
+          "url": "https://www.cyber.org/cybersafety",
+          "note": "Use the short student-friendly videos here to review digital footprints, passwords, and other online safety habits one idea at a time."
+        },
+        {
+          "title": "KidsHealth - Online Safety (for Kids)",
+          "url": "https://kidshealth.org/en/kids/online-id.html",
+          "note": "Use this to read simple explanations about strangers online, what not to share, and why telling a trusted adult is an important safety step."
+        }
+      ],
+      "assignments_outstanding": [],
+      "raw_session": {
+        "session_date": "24 April 2026",
+        "session_date_iso": "2026-04-24",
+        "lesson_title": "Cyber Safety Challenge",
+        "summary": "Leo explored cybersecurity through a video, a fast-response simulation, and an escape challenge focused on phishing, digital footprints, strong passwords, and online privacy.",
+        "aim": "To help Leo recognise common online safety risks, explain what a digital footprint is, and make safer choices when using emails, websites, games, and school platforms.",
+        "headline_insight": "Leo showed the strongest growth when he slowed down, checked the wording carefully, and turned safety ideas into practical choices.",
+        "current_focus": "Making safe online choices with more independence",
+        "big_win": "Completed the cybersecurity challenge and explained key online safety ideas clearly.",
+        "next_priority": "Use the same careful thinking when real messages, links, or strangers appear online.",
+        "engagement_status": "Engaged and thoughtful",
+        "why_this_matters": "Cybersecurity is not only a computing topic. It helps Leo protect his privacy, make safer choices, and stay calm when something online feels suspicious.",
+        "student_voice": "Leo said that strangers in games could be hackers and finished by writing that he should not accept random invites or share personal information online.",
+        "progress_since_last_update": [
+          "Defined cybersecurity using his own words.",
+          "Explained why location sharing with strangers online is risky.",
+          "Identified the features of a strong password.",
+          "Completed a cyber simulation using safer responses such as block and report.",
+          "Solved an escape challenge by checking the clue wording more carefully."
+        ],
+        "home_support": [
+          "Ask Leo to explain the difference between safe information and private information.",
+          "Invite Leo to give one example of a digital footprint from his own online use.",
+          "If a message or website seems strange, encourage Leo to pause first and check with an adult rather than guessing."
+        ],
+        "upcoming_focus": [
+          "Keep practising how to spot suspicious messages and fake requests.",
+          "Strengthen the habit of protecting private information in games and websites.",
+          "Explain cybersecurity ideas more clearly without relying on prompts."
+        ],
+        "indicators": {
+          "Cybersecurity awareness": "Practised",
+          "Digital footprint understanding": "Growing",
+          "Privacy choices": "Growing",
+          "Independent problem solving": "Developing"
+        },
+        "strengths": [
+          "Leo connected online safety ideas to real situations such as games, emails, and private details.",
+          "He stayed involved throughout the simulation and challenge activities.",
+          "He kept thinking when one clue was confusing and corrected his answer carefully."
+        ],
+        "areas_for_growth": [
+          "Keep slowing down when challenge wording is tricky so he can rely on reasoning rather than first guesses.",
+          "Use more precise language when explaining terms such as phishing and digital footprint.",
+          "Turn his growing awareness into a routine habit whenever he is online."
+        ],
+        "next_steps": [
+          "Your next step: explain cybersecurity in one clear sentence and add one real example from a game, website, or email.",
+          "Your next step: make a safe-to-share versus not-safe-to-share table with at least five examples.",
+          "Your next step: create one strong practice password and explain what makes it difficult to guess."
+        ],
+        "skills_observed": [
+          "Critical thinking",
+          "Digital safety",
+          "Problem solving",
+          "Careful reading",
+          "Independent reflection"
+        ],
+        "engagement": "Leo stayed engaged throughout the lesson, especially when the safety ideas were turned into actions through the simulation and escape challenge.",
+        "resources": [
+          {
+            "title": "Be Internet Awesome - Interland",
+            "url": "https://beinternetawesome.withgoogle.com/en_us/interland",
+            "note": "Use this game to keep practising safe online choices such as protecting private information, spotting tricks, and responding wisely when something feels wrong."
+          },
+          {
+            "title": "CYBER.ORG - Cyber Safety Series",
+            "url": "https://www.cyber.org/cybersafety",
+            "note": "Use the short student-friendly videos here to review digital footprints, passwords, and other online safety habits one idea at a time."
+          },
+          {
+            "title": "KidsHealth - Online Safety (for Kids)",
+            "url": "https://kidshealth.org/en/kids/online-id.html",
+            "note": "Use this to read simple explanations about strangers online, what not to share, and why telling a trusted adult is an important safety step."
+          }
+        ],
+        "independence_patterns": [],
+        "misconceptions": [],
+        "communication_patterns": [],
+        "student_glows": [],
+        "accuracy_patterns": [],
+        "vocabulary_patterns": [],
+        "confidence_patterns": [],
+        "reasoning_patterns": [],
+        "successful_strategies": [],
+        "skills_focus": [],
+        "participation_patterns": [],
+        "student_grows": [],
+        "additional_notes": "",
+        "current_unit": "",
+        "student_pacing": "",
+        "lesson_engagement": "",
+        "assignments_outstanding": [],
+        "dashboard_subject": "Primary-1 Computer Skills"
+      }
+    },
+    {
+      "session_date": "22 April 2026",
+      "session_date_iso": "2026-04-22",
+      "lesson_title": "First HTML Website",
+      "subject": "Primary-1 Computer Skills",
+      "summary": "Leo built and edited a one-page HTML website by copying starter code into Notepad, saving it as index.html, opening it in a browser, editing the text, refreshing the page, and experimenting with HTML colour codes.",
+      "aim": "To help Leo understand that webpages can be built from plain text HTML instructions and to practise safe editing habits: save, refresh, test, and change one part at a time.",
+      "big_win": "Created and edited a working webpage.",
+      "next_priority": "Explain each edit after testing it.",
+      "current_unit": "",
+      "student_pacing": "",
+      "lesson_engagement": "",
+      "additional_notes": "",
+      "student_voice": "Leo showed his curiosity by asking whether he could add more sections and by saying that he wanted to experiment with the design.",
+      "home_support": [
+        "Ask Leo to show the saved webpage and explain one change he made.",
+        "Encourage Leo to make one small edit at a time, save, refresh, and describe the result.",
+        "If Leo wants to keep experimenting, ask him to record two colour codes and where he used them."
+      ],
+      "extension_task": "",
+      "family_friendly_science_explanation": "",
+      "ideas_we_are_refining": "",
+      "skills": [
+        {
+          "evidence": "Leo was enthusiastic when he saw that his code changes immediately changed the website.",
+          "source_field": "strengths"
+        },
+        {
+          "evidence": "He personalised the page with his own interests and experimented with colours.",
+          "source_field": "strengths"
+        },
+        {
+          "evidence": "He was willing to search through the code and try design changes rather than waiting passively.",
+          "source_field": "strengths"
+        },
+        {
+          "evidence": "Critical thinking",
+          "source_field": "skills_observed"
+        },
+        {
+          "evidence": "Problem solving",
+          "source_field": "skills_observed"
+        },
+        {
+          "evidence": "Digital organisation",
+          "source_field": "skills_observed"
+        },
+        {
+          "evidence": "Safe code editing",
+          "source_field": "skills_observed"
+        },
+        {
+          "evidence": "Creative experimentation",
+          "source_field": "skills_observed"
+        }
+      ],
+      "growing_next": [
+        {
+          "evidence": "Build a stronger routine of checking the correct CGA email before lessons.",
+          "source_field": "areas_for_growth"
+        },
+        {
+          "evidence": "Slow down when editing so that visible text changes do not accidentally remove important code.",
+          "source_field": "areas_for_growth"
+        },
+        {
+          "evidence": "Practise explaining what each change did after saving and refreshing.",
+          "source_field": "areas_for_growth"
+        },
+        {
+          "evidence": "Explain each edit after testing it.",
+          "source_field": "next_priority"
+        }
+      ],
+      "resources": [
+        {
+          "title": "MDN Web Docs - Basic HTML Syntax",
+          "url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Structuring_content/Basic_HTML_syntax",
+          "note": "Use the simple examples to review how HTML tags structure a webpage."
+        },
+        {
+          "title": "W3Schools - HTML Color Picker",
+          "url": "https://www.w3schools.com/colors/colors_picker.asp",
+          "note": "Use it to choose colour codes and test them carefully in the CSS section."
+        },
+        {
+          "title": "Khan Academy - Intro to HTML/CSS: Making Webpages",
+          "url": "https://www.khanacademy.org/computing/computer-programming/html-css",
+          "note": "Use this for guided practice if Leo wants to keep experimenting with HTML and CSS."
+        }
+      ],
+      "assignments_outstanding": [],
+      "raw_session": {
+        "session_date": "22 April 2026",
+        "session_date_iso": "2026-04-22",
+        "lesson_title": "First HTML Website",
+        "summary": "Leo built and edited a one-page HTML website by copying starter code into Notepad, saving it as index.html, opening it in a browser, editing the text, refreshing the page, and experimenting with HTML colour codes.",
+        "aim": "To help Leo understand that webpages can be built from plain text HTML instructions and to practise safe editing habits: save, refresh, test, and change one part at a time.",
+        "headline_insight": "Leo became most engaged when coding felt real, visible, and personally customisable.",
+        "current_focus": "Building a simple HTML webpage",
+        "big_win": "Created and edited a working webpage.",
+        "next_priority": "Explain each edit after testing it.",
+        "engagement_status": "Curious and experimental",
+        "why_this_matters": "Understanding how a small code change becomes a visible webpage helps Leo see computing as a creative problem-solving process, not just a set of instructions to follow.",
+        "progress_since_last_update": [
+          "Saved a webpage file using the correct index.html filename.",
+          "Edited visible HTML text to personalise the page.",
+          "Used HTML colour codes to experiment with design choices.",
+          "Practised saving and refreshing to test changes."
+        ],
+        "home_support": [
+          "Ask Leo to show the saved webpage and explain one change he made.",
+          "Encourage Leo to make one small edit at a time, save, refresh, and describe the result.",
+          "If Leo wants to keep experimenting, ask him to record two colour codes and where he used them."
+        ],
+        "student_voice": "Leo showed his curiosity by asking whether he could add more sections and by saying that he wanted to experiment with the design.",
+        "indicators": {
+          "HTML structure": "Introduced",
+          "Safe code editing": "Practised",
+          "Design experimentation": "Growing",
+          "Independent checking": "Developing"
+        },
+        "upcoming_focus": [
+          "Complete the current website-building activity carefully.",
+          "Explain how saving and refreshing connect the code file to the browser.",
+          "Keep customising the website without deleting structural code."
+        ],
+        "strengths": [
+          "Leo was enthusiastic when he saw that his code changes immediately changed the website.",
+          "He personalised the page with his own interests and experimented with colours.",
+          "He was willing to search through the code and try design changes rather than waiting passively."
+        ],
+        "areas_for_growth": [
+          "Build a stronger routine of checking the correct CGA email before lessons.",
+          "Slow down when editing so that visible text changes do not accidentally remove important code.",
+          "Practise explaining what each change did after saving and refreshing."
+        ],
+        "next_steps": [
+          "Your next step: change one sentence in index.html, save, refresh, and write one sentence explaining what changed.",
+          "Your next step: test two HTML colour codes and make a two-column table showing each code and where it was used.",
+          "Your next step: write one question beginning with 'How might I...' about a safe customisation you want to try next."
+        ],
+        "skills_observed": [
+          "Critical thinking",
+          "Problem solving",
+          "Digital organisation",
+          "Safe code editing",
+          "Creative experimentation"
+        ],
+        "engagement": "Leo was lively and curious, especially once he saw his own edits and colour choices appear on the webpage.",
+        "resources": [
+          {
+            "title": "MDN Web Docs - Basic HTML Syntax",
+            "url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Structuring_content/Basic_HTML_syntax",
+            "note": "Use the simple examples to review how HTML tags structure a webpage."
+          },
+          {
+            "title": "W3Schools - HTML Color Picker",
+            "url": "https://www.w3schools.com/colors/colors_picker.asp",
+            "note": "Use it to choose colour codes and test them carefully in the CSS section."
+          },
+          {
+            "title": "Khan Academy - Intro to HTML/CSS: Making Webpages",
+            "url": "https://www.khanacademy.org/computing/computer-programming/html-css",
+            "note": "Use this for guided practice if Leo wants to keep experimenting with HTML and CSS."
+          }
+        ],
+        "independence_patterns": [],
+        "misconceptions": [],
+        "communication_patterns": [],
+        "student_glows": [],
+        "accuracy_patterns": [],
+        "vocabulary_patterns": [],
+        "confidence_patterns": [],
+        "reasoning_patterns": [],
+        "successful_strategies": [],
+        "skills_focus": [],
+        "participation_patterns": [],
+        "student_grows": [],
+        "additional_notes": "",
+        "current_unit": "",
+        "student_pacing": "",
+        "lesson_engagement": "",
+        "assignments_outstanding": [],
+        "dashboard_subject": "Primary-1 Computer Skills"
+      }
+    }
+  ]
+}</script>
+<script>
+const DISCLAIMER = "This is a voluntary teaching resource created by Mr. Guevara to add as much value as possible for families and students. It is not a requirement of Crimson Global Academy, and other teachers may not provide anything similar — this is not part of what CGA officially offers. Please refer to the Learning Lab as the official Crimson Global Academy resource, where assignments, grades, deadlines, and formal progress reports are provided. The information here is supplementary and is not part of any official session report or progress report sent by the school.";
+
+const LINKEDIN_URL = "https://www.linkedin.com/in/diego-urrutia-guevara-150bb641/";
+
+const data = JSON.parse(document.getElementById('dashboard-v2-data').textContent);
+const name = data.student_first_name || "the student";
+
+function esc(s){
+  return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+function footerHtml(){
+  return `<footer class="disclaimer">${esc(DISCLAIMER)}</footer>`;
+}
+
+const TARGET_ICON = `<svg class="target-icon" viewBox="0 0 64 64" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="32" cy="32" r="27" fill="none" stroke="currentColor" stroke-width="4" opacity=".35"/>
+  <circle cx="32" cy="32" r="15" fill="none" stroke="currentColor" stroke-width="4" opacity=".55"/>
+  <circle cx="32" cy="32" r="4" fill="currentColor"/>
+</svg>`;
+
+function eyebrow(label){
+  return `<div class="eyebrow-label">${TARGET_ICON}${esc(label)}</div>`;
+}
+
+/* ---------------- OVERVIEW TAB ---------------- */
+function renderOverview(){
+  const s = data.stats || {};
+  const latest = data.sessions[0] || {};
+  const quotes = data.voice_quotes || [];
+
+  let html = `
+    ${eyebrow("Overview")}
+    <h2 class="panel-title">Overview</h2>
+    <p class="panel-sub">A quick snapshot of ${esc(name)}'s learning journey so far.</p>
+    <div class="stat-row">
+      <div class="stat"><div class="num">${s.sessions_logged ?? 0}</div><div class="label">Sessions logged</div></div>
+      <div class="stat"><div class="num">${s.distinct_skills_tried ?? 0}</div><div class="label">Distinct skills tried</div></div>
+      <div class="stat"><div class="num">${s.milestones_hit ?? 0}</div><div class="label">Milestones hit</div></div>
+    </div>
+    <div class="focus-row">
+      <div class="focus-card win"><div class="eyebrow">Big win</div>${esc(latest.big_win || "")}</div>
+      <div class="focus-card tonight"><div class="eyebrow">Try tonight</div>${esc((latest.home_support && latest.home_support[0]) || "")}</div>
+      <div class="focus-card edge"><div class="eyebrow">Growing edge</div>${esc((latest.growing_next && latest.growing_next[0] && latest.growing_next[0].evidence) || "")}</div>
+    </div>
+    <div class="card">
+      <h3>Since we last looked</h3>
+      <p>${esc(latest.raw_session && latest.raw_session.progress_since_last_update && Array.isArray(latest.raw_session.progress_since_last_update) ? latest.raw_session.progress_since_last_update[0] : (latest.raw_session ? latest.raw_session.progress_since_last_update : "") || "")}</p>
+    </div>
+    <div class="card">
+      <h3>What this lesson was about</h3>
+      <p>${esc(latest.family_friendly_science_explanation || latest.summary || "")}</p>
+    </div>
+    <div class="card">
+      <h3>In ${esc(name)}'s own words</h3>
+      ${quotes.map(q => `
+        <div class="quote-card">
+          <blockquote>&ldquo;${esc(q.quote)}&rdquo;</blockquote>
+          <div class="interp">From "${esc(q.lesson_title)}" (${esc(q.session_date)}) — this shows ${esc(name)} thinking in his own terms, not just repeating a definition.</div>
+        </div>`).join("")}
+    </div>
+  `;
+  document.getElementById('tab-overview').innerHTML = html + footerHtml();
+}
+
+/* ---------------- PROGRESS TAB (chart) ---------------- */
+const STAGE_Y = {Emerging: 3, Developing: 2, Growing: 1, Secure: 0};
+// Line colours pulled from the Discovery Lab "earth" theme's accent/signal
+// family (greens and rust-orange), so threads read as one palette with the
+// rest of the dashboard rather than an unrelated colour set.
+const STAGE_COLORS = {
+  "Hardware & software vocabulary": "#40634C",
+  "Independent research & problem solving": "#517B5E",
+  "Programming & coding": "#B5551F",
+  "Digital safety & responsible use": "#A66B00",
+};
+const LINE_COL = "#1D211C24";
+const INK2 = "#4A5148";
+const INK3 = "#757C72";
+
+function shortDate(iso){
+  const d = new Date(iso + "T00:00:00");
+  return d.toLocaleDateString("en-GB", {day:"numeric", month:"short"});
+}
+
+function buildChartSVG(threads){
+  const W = 780, H = 300, padL = 140, padR = 20, padT = 20, padB = 46;
+  const allDates = [...new Set(Object.values(threads).flat().map(p => p.session_date_iso))].sort();
+  const x = d => {
+    const idx = allDates.indexOf(d);
+    const n = Math.max(allDates.length - 1, 1);
+    return padL + (idx / n) * (W - padL - padR);
+  };
+  const rowH = (H - padT - padB) / 4;
+  const y = stage => padT + STAGE_Y[stage] * rowH + rowH / 2;
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="var(--font-ui),sans-serif">`;
+
+  // Stage rows: qualitative stage NAMES are the only y-axis labels, never numbers.
+  ["Emerging","Developing","Growing","Secure"].forEach((stage, i) => {
+    const yy = padT + i * rowH + rowH / 2;
+    svg += `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="${LINE_COL}" stroke-width="1" stroke-dasharray="3 5"/>`;
+    svg += `<text x="8" y="${yy + 4}" font-size="12" fill="${INK2}" font-weight="700">${stage}</text>`;
+  });
+
+  // Dated x-axis: a step line under the plot with a dashed tick per session date.
+  const axisY = padT + 4 * rowH;
+  svg += `<line x1="${padL}" y1="${axisY}" x2="${W - padR}" y2="${axisY}" stroke="${LINE_COL}" stroke-width="1"/>`;
+  allDates.forEach(d => {
+    const px = x(d);
+    svg += `<line x1="${px}" y1="${axisY}" x2="${px}" y2="${axisY + 6}" stroke="${LINE_COL}" stroke-width="1" stroke-dasharray="2 3"/>`;
+    svg += `<text x="${px}" y="${axisY + 22}" font-size="10" fill="${INK3}" text-anchor="middle" transform="rotate(0 ${px} ${axisY+22})" font-family="var(--font-data),monospace">${shortDate(d)}</text>`;
+  });
+
+  let pointId = 0;
+  const points = [];
+  Object.entries(threads).forEach(([threadName, pts]) => {
+    const color = STAGE_COLORS[threadName] || "#40634C";
+    const sorted = [...pts].sort((a,b) => a.session_date_iso.localeCompare(b.session_date_iso));
+    // Step line (not a smooth diagonal): holds the current stage until the
+    // next dated observation, which better reflects a qualitative plateau.
+    let path = "";
+    sorted.forEach((p, i) => {
+      const px = x(p.session_date_iso), py = y(p.stage);
+      if (i === 0) { path += `M${px},${py} `; }
+      else {
+        const prevPx = x(sorted[i-1].session_date_iso);
+        path += `L${px},${y(sorted[i-1].stage)} L${px},${py} `;
+      }
+    });
+    svg += `<path d="${path.trim()}" fill="none" stroke="${color}" stroke-width="2.5" opacity="0.85"/>`;
+    sorted.forEach(p => {
+      const px = x(p.session_date_iso), py = y(p.stage);
+      const id = "pt" + (pointId++);
+      points.push({id, threadName, ...p});
+      svg += `<circle cx="${px}" cy="${py}" r="5" fill="${color}" stroke="${'#FBF9F3'}" stroke-width="1.5" style="cursor:pointer" onclick="showEvidence('${id}')"/>`;
+    });
+  });
+  svg += `</svg>`;
+  window.__chartPoints = points;
+  return svg;
+}
+
+function showEvidence(id){
+  const p = (window.__chartPoints || []).find(pt => pt.id === id);
+  const el = document.getElementById('evidence-pop');
+  if (!el || !p) return;
+  el.innerHTML = `<strong>${esc(p.threadName)} — ${esc(p.stage)}</strong> (${esc(p.session_date)}, "${esc(p.lesson_title)}")<br>${esc(p.evidence)}`;
+  el.classList.add('show');
+  el.scrollIntoView({behavior:"smooth", block:"nearest"});
+}
+
+function renderProgress(){
+  const threads = data.skill_threads || {};
+  const lp = data.learning_profile || {};
+  const milestones = data.milestones || [];
+
+  let legend = Object.keys(threads).map(k =>
+    `<span><span class="legend-dot" style="background:${STAGE_COLORS[k] || '#2F5871'}"></span>${esc(k)}</span>`
+  ).join(" &nbsp; ");
+
+  let html = `
+    ${eyebrow("Progress")}
+    <h2 class="panel-title">Progress</h2>
+    <p class="panel-sub">These are Mr. Guevara's qualitative professional observations from lessons, not a score or grade. Click any point on the chart for the evidence it is drawn from.</p>
+    <div class="card chart-card">
+      <h3>Skills over time (qualitative stages)</h3>
+      ${buildChartSVG(threads)}
+      <div class="chart-legend">${legend}</div>
+      <div id="evidence-pop" class="evidence-pop"></div>
+    </div>
+    <div class="card">
+      <h3>Moments that mattered</h3>
+      ${milestones.map(m => `
+        <div class="milestone">
+          <div class="dot"></div>
+          <div>
+            <div class="date">${esc(m.session_date)}</div>
+            <strong>${esc(m.title)}</strong>
+            <div>${esc(m.detail)}</div>
+          </div>
+        </div>`).join("")}
+    </div>
+    <div class="card">
+      <h3>Early learning profile</h3>
+      <div class="basis-note">Based on ${lp.based_on_sessions ?? 0} sessions so far — this will keep evolving as more sessions are logged.</div>
+      <div class="profile-grid" style="margin-top:10px;">
+        <div class="item"><div class="k">Engages best when</div>${esc(lp.engages_best_when || "")}</div>
+        <div class="item"><div class="k">Responds well to</div>${esc(lp.responds_well_to || "")}</div>
+        <div class="item"><div class="k">Often curious about</div>${esc(lp.often_curious_about || "")}</div>
+        <div class="item"><div class="k">Currently trying</div>${esc(lp.currently_trying || "")}</div>
+      </div>
+    </div>
+  `;
+  document.getElementById('tab-progress').innerHTML = html + footerHtml();
+}
+
+/* ---------------- HELP AT HOME TAB ---------------- */
+function renderHelpAtHome(){
+  const latest = data.sessions[0] || {};
+  const askQuestions = (latest.raw_session && latest.raw_session.next_steps) || [];
+  let html = `
+    ${eyebrow("Help at Home")}
+    <h2 class="panel-title">Help at Home</h2>
+    <p class="panel-sub">This is optional and conversational, not homework — a few ideas if a moment naturally comes up at home.</p>
+    <div class="card">
+      <h3>Ask ${esc(name)}</h3>
+      <ul class="plain">
+        ${askQuestions.slice(0,3).map(q => `<li>${esc(q)}</li>`).join("")}
+      </ul>
+    </div>
+    <div class="card">
+      <h3>This week's home-support idea</h3>
+      <ul class="plain">${(latest.home_support || []).map(h => `<li>${esc(h)}</li>`).join("")}</ul>
+    </div>
+    <div class="card">
+      <h3>Resources from the latest session</h3>
+      ${(latest.resources || []).map(r => `
+        <div class="resource-link">
+          <a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a>
+          <div class="note">${esc(r.note)}</div>
+        </div>`).join("")}
+    </div>
+  `;
+  document.getElementById('tab-helpathome').innerHTML = html + footerHtml();
+}
+
+/* ---------------- SESSIONS TAB ---------------- */
+function renderSessions(){
+  const sessions = data.sessions || [];
+  let html = `
+    ${eyebrow("Sessions")}
+    <h2 class="panel-title">Sessions</h2>
+    <p class="panel-sub">Full chronological session history, newest first. Click any session to expand it.</p>
+  `;
+  sessions.forEach(s => {
+    html += `
+      <details class="session">
+        <summary>${esc(s.lesson_title)}<span class="sdate">${esc(s.session_date)}</span></summary>
+        <div class="session-body">
+          <h4>Summary</h4><p>${esc(s.summary)}</p>
+          <h4>Strengths / glows</h4>
+          <ul class="plain">${(s.skills || []).map(sk => `<li>${esc(sk.evidence)}</li>`).join("")}</ul>
+          <h4>Growing next</h4>
+          <ul class="plain">${(s.growing_next || []).map(g => `<li>${esc(g.evidence)}</li>`).join("")}</ul>
+          <h4>Resources</h4>
+          ${(s.resources || []).map(r => `<div class="resource-link"><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a><div class="note">${esc(r.note)}</div></div>`).join("")}
+        </div>
+      </details>
+    `;
+  });
+  document.getElementById('tab-sessions').innerHTML = html + footerHtml();
+}
+
+/* ---------------- ABOUT TAB ---------------- */
+function renderAbout(){
+  const chips = ["Primary &amp; Secondary","IGCSE &middot; A-Level &middot; US Diploma","UK &middot; Spain &middot; New Zealand","Students on 4 continents","Teacher training"];
+  const html = `
+    ${eyebrow("About")}
+    <h2 class="panel-title">About Mr. Guevara</h2>
+    <p class="panel-sub">The teacher behind this dashboard.</p>
+    <div class="card about-hero">
+      ${eyebrow("The teacher behind this dashboard")}
+      <div class="about-photo-wrap">
+        <img class="about-photo" src="https://educadug.github.io/discovery-lab/about/diego.jpg?v=2" alt="Diego Urrutia Guevara" loading="lazy">
+      </div>
+      <h3 class="about-heading">Diego Urrutia Guevara</h3>
+      <p class="about-subheading">Studied in Norway, Spain and New Zealand. Taught in the UK, Spain and New Zealand. Now teaching students across four continents.</p>
+      <div class="about-chip-row">${chips.map(c => `<span class="about-chip">${c}</span>`).join("")}</div>
+      <a class="btn-linkedin" href="${esc(LINKEDIN_URL)}" target="_blank" rel="noopener noreferrer">Connect on LinkedIn</a>
+    </div>
+    <div class="card">
+      <h3>About Diego</h3>
+      <p>Diego's classroom has never had one nationality in it. He studied in Norway, Spain and New Zealand, taught in both private and state schools in the United Kingdom and Spain, and now teaches from New Zealand to students in Europe, the United States, Japan, China, Southeast Asia and Australia.</p>
+      <p>That range is not a travel list — it is the substance of how he teaches. Students arrive from different school systems, different languages and very different ideas of what a good answer looks like. Teaching all of them well means building lessons around thinking rather than around the habits of any single curriculum.</p>
+      <p>Before and alongside education, Diego worked in international consultancy and biodiversity. He believes students learn best when knowledge is connected to real problems, investigation, decision-making and the world beyond the classroom.</p>
+      <p>Running through all of it is a particular interest in the thoughtful use of technology and AI in education. Discovery Lab is where that becomes something you can click: simulations and investigations where students experiment, decide, test ideas and learn by doing.</p>
+    </div>
+    <div class="card about-closing">
+      <h3>Full background and experience</h3>
+      <p>Qualifications, teaching history and professional work are all on LinkedIn. Connect there, or get in touch.</p>
+      <a class="btn-linkedin" href="${esc(LINKEDIN_URL)}" target="_blank" rel="noopener noreferrer">View LinkedIn profile</a>
+    </div>
+  `;
+  document.getElementById('tab-about').innerHTML = html + footerHtml();
+}
+
+renderOverview();
+renderProgress();
+renderHelpAtHome();
+renderSessions();
+renderAbout();
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
